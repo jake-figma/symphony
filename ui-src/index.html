@@ -7,8 +7,26 @@
   <title>Symphony</title>
 </head>
 
-<body style="background: black;">
-  <button id="start" style="height: 100vh; width: 100vw">Start listening!</button>
+<body>
+  <main>
+    <p><strong>Symphony</strong></p>
+    <label for="listening">
+      <input id="listening" type="checkbox">
+      <span>Listening</span>
+    </label>
+    <label for="proximity">
+      <input id="proximity" type="checkbox" disabled>
+      <span>Proximity</span>
+    </label>
+    <label for="multiplayer">
+      <input id="multiplayer" type="checkbox" disabled>
+      <span>Multiplayer</span>
+    </label>
+    <label for="rate">
+      <input id="rate" type="range" min="1" max="20" value="10" disabled>
+      <span>Rate (<span id="rate-value">10</span>)</span>
+    </label>
+  </main>
   <script type="module" src="./main.tsx"></script>
 </body>
 

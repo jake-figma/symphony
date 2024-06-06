@@ -1,11 +1,9 @@
-import { PongMessage, MAX_DISTANCE } from "../widget-src/shared";
+import {
+  MAX_DISTANCE,
+  PingMessage,
+  messageIsPongMessage,
+} from "../widget-src/shared";
 import "./index.css";
-
-function messageIsPongMessage(
-  message: any | PongMessage
-): message is PongMessage {
-  return message.type === "PONG";
-}
 
 type OscillatorMap = {
   [sessionOscillatorId: string]: {
@@ -14,40 +12,73 @@ type OscillatorMap = {
   };
 };
 
-const $start = document.getElementById("start");
-$start?.addEventListener("click", initialize);
-
-const USE_PROXIMITY = false;
-const USE_MULTIPLAYER = false;
+let USE_PROXIMITY = false;
+let USE_MULTIPLAYER = false;
+let MUTE = true;
+let INITIALIZED = false;
 const beats = {
-  rate: 2,
+  rate: 10,
+  inc: 0,
   step: 0,
+  change: false,
   calc() {
-    let is1st = this.step % (this.rate * 16) === 0;
-    let is2nd = this.step % (this.rate * 8) === 0;
-    let is4th = this.step % (this.rate * 4) === 0;
-    let is8th = this.step % (this.rate * 2) === 0;
-    let is16th = this.step % this.rate === 0;
-    this.step++;
-    return [
-      is1st ? 1 : 0,
-      is2nd ? 1 : 0,
-      is4th ? 1 : 0,
-      is8th ? 1 : 0,
-      is16th ? 1 : 0,
-    ].join("");
+    if (this.inc % this.rate === 0) {
+      this.step++;
+      this.change = true;
+    } else {
+      this.change = false;
+    }
+    this.inc++;
   },
 };
 
-async function initialize() {
-  $start?.remove();
+const $listening = document.getElementById("listening") as HTMLInputElement;
+$listening.addEventListener("change", onListeningChange);
+const $multiplayer = document.getElementById("multiplayer") as HTMLInputElement;
+$multiplayer.addEventListener("change", onMultiplayerChange);
+const $proximity = document.getElementById("proximity") as HTMLInputElement;
+$proximity.addEventListener("change", onProximityChange);
+const $rate = document.getElementById("rate") as HTMLInputElement;
+$rate.addEventListener("input", onRateChange);
+const $rateValue = document.getElementById("rate-value") as HTMLSpanElement;
+let mainGain: GainNode;
+
+onRateChange();
+onProximityChange();
+onMultiplayerChange();
+
+function onMultiplayerChange() {
+  USE_MULTIPLAYER = $multiplayer.checked;
+}
+function onProximityChange() {
+  USE_PROXIMITY = $proximity.checked;
+}
+function onRateChange() {
+  beats.rate =
+    parseInt($rate.getAttribute("max") || "20") + 1 - parseInt($rate.value);
+  $rateValue.innerText = $rate.value;
+}
+
+async function onListeningChange() {
+  MUTE = !$listening.checked;
+  if (INITIALIZED) {
+    mainGain.gain.value = MUTE ? 0 : 1;
+    return;
+  }
+  INITIALIZED = true;
+  $multiplayer.removeAttribute("disabled");
+  $proximity.removeAttribute("disabled");
+  $rate.removeAttribute("disabled");
   const oscillators: OscillatorMap = {};
   const context = new AudioContext();
+  mainGain = context.createGain();
+  mainGain.connect(context.destination);
+  mainGain.gain.value = MUTE ? 0 : 1;
   window.onmessage = ({ data }) => {
     const message = data.pluginMessage;
     if (messageIsPongMessage(message)) {
       const { currentSessionId, users } = message.payload;
-      if (!currentSessionId) {
+      if (!currentSessionId || !mainGain) {
         return;
       }
 
@@ -101,18 +132,20 @@ async function initialize() {
                 context.currentTime + 0.125
               );
               oscillator.start(context.currentTime);
-              gain.connect(context.destination);
+              gain.connect(mainGain);
               newOscillators[sessionOscillatorId] = { oscillator, gain };
             }
           }
         }
       }
       Object.assign(oscillators, newOscillators);
-      let beat = beats.calc();
+      beats.calc();
+      const beat = { step: beats.step, change: beats.change };
+      const pluginMessage: PingMessage = { type: "PING", beat };
       setTimeout(() => {
         parent.postMessage(
           {
-            pluginMessage: { type: "PING", beat },
+            pluginMessage,
             pluginId: "1365528382821091411",
           },
           "*"
@@ -121,9 +154,10 @@ async function initialize() {
     }
   };
 
+  const pluginMessage: PingMessage = { type: "PING" };
   parent.postMessage(
     {
-      pluginMessage: { type: "PING" },
+      pluginMessage,
       pluginId: "1365528382821091411",
     },
     "*"

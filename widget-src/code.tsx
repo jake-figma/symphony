@@ -2,6 +2,7 @@ import {
   MAX_DISTANCE,
   PongMessagePayload,
   PongMessagePayloadOscillator,
+  messageIsPingMessage,
 } from "./shared";
 
 const { currentPage, getNodeByIdAsync, widget } = figma;
@@ -19,7 +20,6 @@ const {
 } = widget;
 
 const LOOP_MODE = true;
-
 const NODE_DIAMETER = 160;
 const NODE_FONT_SIZE = 30;
 
@@ -28,8 +28,8 @@ async function openUI() {
     figma.showUI(
       `<script>window.location.href = "${url}?${Date.now()}"</script>`,
       {
-        width: 100,
-        height: 80,
+        width: 200,
+        height: 200,
       }
     );
   });
@@ -40,8 +40,8 @@ function Widget() {
 
   useEffect(() => {
     figma.ui.onmessage = async (e) => {
-      if (e.type === "PING") {
-        await handleBeat(e.beat);
+      if (messageIsPingMessage(e)) {
+        if (e.beat) await handleBeat(e.beat);
         figma.ui.postMessage({
           type: "PONG",
           payload: await getCurrentPayload(),
@@ -50,8 +50,14 @@ function Widget() {
     };
   });
 
-  async function handleBeat(beat: string): Promise<void> {
-    if (!LOOP_MODE || beat === "00000") return;
+  async function handleBeat({
+    step,
+    change,
+  }: {
+    step: number;
+    change: boolean;
+  }): Promise<void> {
+    if (!LOOP_MODE || !change) return;
     const nextNodes: SceneNode[] = [];
     await Promise.all(
       currentPage.selection.map(async (node) => {
@@ -61,19 +67,23 @@ function Widget() {
             c.connectorStart.endpointNodeId === node.id
         );
         for (let start of starts) {
-          const beatIndex =
-            start.connectorEndStrokeCap === "NONE"
-              ? 4
-              : [
-                  "CIRCLE_FILLED",
-                  "DIAMOND_FILLED",
-                  "TRIANGLE_FILLED",
-                  "ARROW_EQUILATERAL",
-                  "ARROW_LINES",
-                ].indexOf(start.connectorEndStrokeCap);
+          // option 1 is length of line.
+          // const length = Math.floor((start.height + start.width) / 160); // should be multiple of 16 for shift nudge.
+          // option 2 is length of characters.
+          const length = start.text.characters.length + 1;
+          // const beatIndex =
+          //   start.connectorEndStrokeCap === "NONE"
+          //     ? 4
+          //     : [
+          //         "CIRCLE_FILLED",
+          //         "DIAMOND_FILLED",
+          //         "TRIANGLE_FILLED",
+          //         "ARROW_EQUILATERAL",
+          //         "ARROW_LINES",
+          //       ].indexOf(start.connectorEndStrokeCap);
           const next = await findNextNodeFromConnector(start);
-          if (next) {
-            if (beat.charAt(beatIndex) === "1") {
+          if (next && !nextNodes.includes(node)) {
+            if (step % length === 0) {
               nextNodes.push(next);
             } else {
               nextNodes.push(node);
