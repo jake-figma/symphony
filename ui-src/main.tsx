@@ -15,7 +15,6 @@ type OscillatorMap = {
 let USE_PROXIMITY = false;
 let USE_MULTIPLAYER = false;
 let MUTE = true;
-let INITIALIZED = false;
 const beats = {
   rate: 10,
   inc: 0,
@@ -32,6 +31,8 @@ const beats = {
   },
 };
 
+const oscillators: OscillatorMap = {};
+
 const $listening = document.getElementById("listening") as HTMLInputElement;
 $listening.addEventListener("change", onListeningChange);
 const $multiplayer = document.getElementById("multiplayer") as HTMLInputElement;
@@ -41,7 +42,7 @@ $proximity.addEventListener("change", onProximityChange);
 const $rate = document.getElementById("rate") as HTMLInputElement;
 $rate.addEventListener("input", onRateChange);
 const $rateValue = document.getElementById("rate-value") as HTMLSpanElement;
-let mainGain: GainNode;
+let context: AudioContext;
 
 onRateChange();
 onProximityChange();
@@ -61,24 +62,28 @@ function onRateChange() {
 
 async function onListeningChange() {
   MUTE = !$listening.checked;
-  if (INITIALIZED) {
-    mainGain.gain.value = MUTE ? 0 : 1;
+  if (MUTE) {
+    for (let sessionOscillatorId in oscillators) {
+      const { gain, oscillator } = oscillators[sessionOscillatorId];
+      gain.gain.linearRampToValueAtTime(0, context.currentTime + 0.25);
+      oscillator.stop(context.currentTime + 0.3);
+      oscillator.addEventListener("ended", () => {
+        gain.disconnect();
+      });
+      delete oscillators[sessionOscillatorId];
+    }
     return;
   }
-  INITIALIZED = true;
   $multiplayer.removeAttribute("disabled");
   $proximity.removeAttribute("disabled");
   $rate.removeAttribute("disabled");
-  const oscillators: OscillatorMap = {};
-  const context = new AudioContext();
-  mainGain = context.createGain();
-  mainGain.connect(context.destination);
-  mainGain.gain.value = MUTE ? 0 : 1;
+  context = context || new AudioContext();
+
   window.onmessage = ({ data }) => {
     const message = data.pluginMessage;
     if (messageIsPongMessage(message)) {
       const { currentSessionId, users } = message.payload;
-      if (!currentSessionId || !mainGain) {
+      if (!currentSessionId) {
         return;
       }
 
@@ -132,7 +137,7 @@ async function onListeningChange() {
                 context.currentTime + 0.125
               );
               oscillator.start(context.currentTime);
-              gain.connect(mainGain);
+              gain.connect(context.destination);
               newOscillators[sessionOscillatorId] = { oscillator, gain };
             }
           }
