@@ -208,11 +208,11 @@ function Widget() {
   usePropertyMenu(
     mode === "symphony"
       ? [
-          {
-            propertyName: "all",
-            itemType: "action",
-            tooltip: "All",
-          },
+          // {
+          //   propertyName: "all",
+          //   itemType: "action",
+          //   tooltip: "All",
+          // },
         ]
       : [],
     async (e) => {
