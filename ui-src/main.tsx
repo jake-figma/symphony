@@ -20,14 +20,18 @@ const beats = {
   inc: 0,
   step: 0,
   change: false,
+  reset() {
+    this.step = 0;
+    this.inc = 0;
+  },
   calc() {
+    this.inc++;
     if (this.inc % this.rate === 0) {
       this.step++;
       this.change = true;
     } else {
       this.change = false;
     }
-    this.inc++;
   },
 };
 
@@ -81,6 +85,7 @@ async function onListeningChange() {
 
   window.onmessage = ({ data }) => {
     const message = data.pluginMessage;
+    let nothing = true;
     if (messageIsPongMessage(message)) {
       const { currentSessionId, users } = message.payload;
       if (!currentSessionId) {
@@ -112,6 +117,7 @@ async function onListeningChange() {
       for (let sessionId in users) {
         if (USE_MULTIPLAYER || currentSessionId === sessionId) {
           for (let oscillatorId in users[sessionId].oscillators) {
+            nothing = false;
             const sessionOscillatorId = sessionId + "-" + oscillatorId;
             const distance = USE_PROXIMITY
               ? users[sessionId]?.distances[oscillatorId]
@@ -145,10 +151,15 @@ async function onListeningChange() {
       }
       Object.assign(oscillators, newOscillators);
       beats.calc();
+      if (nothing) beats.reset();
+      // @ts-expect-error
+      document.getElementById("tick").innerText = beats.step;
       const beat = { step: beats.step, change: beats.change };
       const pluginMessage: PingMessage = { type: "PING", beat };
       setTimeout(() => {
-        if (!MUTE) {
+        if (MUTE) {
+          beats.reset();
+        } else {
           parent.postMessage(
             {
               pluginMessage,

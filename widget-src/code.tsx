@@ -20,6 +20,8 @@ const {
   useWidgetNodeId,
 } = widget;
 
+type Combo = "one" | "maj" | "min";
+
 const LOOP_MODE = true;
 const NODE_DIAMETER = 160;
 const NODE_FONT_SIZE = 30;
@@ -68,7 +70,7 @@ function Widget() {
             c.connectorStart.endpointNodeId === node.id
         );
         for (let start of starts) {
-          const length = start.text.characters.length + 1;
+          const length = start.text.characters.length || 1;
           const next = await findNextNodeFromConnector(start);
           if (next && !nextNodes.includes(node)) {
             if (step % length === 0) {
@@ -174,11 +176,15 @@ function Widget() {
     "symphony-octave",
     4
   );
+  const [symphonyCombo, setSymphonyCombo] = useSyncedState<Combo>(
+    "symphony-combo",
+    "one"
+  );
   const [frequency] = useSyncedState("frequency", 0);
-  const [octave, setOctave] = useSyncedState("octave", 3);
-  const [note, setNote] = useSyncedState("note", "undefined");
-  const [step, setStep] = useSyncedState("step", 0);
-  const [wave, setWave] = useSyncedState("wave", "undefined");
+  const [octave] = useSyncedState("octave", 3);
+  const [note] = useSyncedState("note", "undefined");
+  const [step] = useSyncedState("step", 0);
+  const [wave] = useSyncedState("wave", "undefined");
 
   // const octaves = [1, 2, 3, 4, 5, 6];
   const octaves = [2, 3, 4];
@@ -197,63 +203,20 @@ function Widget() {
     "B",
   ];
   const waves = ["sine", "triangle", "sawtooth", "square"];
+  const combos: Combo[] = ["one", "maj", "min"];
 
   usePropertyMenu(
     mode === "symphony"
       ? [
-          {
-            propertyName: "open",
-            itemType: "action",
-            tooltip: "Listen",
-          },
           {
             propertyName: "all",
             itemType: "action",
             tooltip: "All",
           },
         ]
-      : [
-          {
-            propertyName: "open",
-            itemType: "action",
-            tooltip: "Listen",
-          },
-          {
-            propertyName: "note",
-            itemType: "dropdown",
-            tooltip: "Note",
-            options: notes.map((note) => ({ label: note, option: note })),
-            selectedOption: note,
-          },
-          {
-            propertyName: "octave",
-            itemType: "dropdown",
-            tooltip: "Octave",
-            options: octaves.map((octave) => ({
-              label: octave.toString(),
-              option: octave.toString(),
-            })),
-            selectedOption: octave.toString(),
-          },
-          {
-            propertyName: "wave",
-            itemType: "dropdown",
-            tooltip: "Wave",
-            options: waves.map((wave) => ({ label: wave, option: wave })),
-            selectedOption: wave,
-          },
-        ],
+      : [],
     async (e) => {
-      if (e.propertyName === "open") await openUI();
-      else if (e.propertyName === "all") await generateAll();
-      else if (e.propertyName === "note") {
-        setNote(e.propertyValue || "");
-        setStep(notes.indexOf(e.propertyValue || ""));
-      } else if (e.propertyName === "octave") {
-        setOctave(parseInt(e.propertyValue || ""));
-      } else if (e.propertyName === "wave") {
-        setWave(e.propertyValue || "");
-      }
+      if (e.propertyName === "all") await generateAll();
     }
   );
 
@@ -276,6 +239,7 @@ function Widget() {
                       i,
                       octave,
                       wave,
+                      "one",
                       widgetNode,
                       true
                     );
@@ -301,9 +265,10 @@ function Widget() {
     step: number,
     octave: number,
     wave: string,
+    combo: "one" | "maj" | "min",
     widgetNode?: WidgetNode,
     oneOff = false
-  ): Promise<null | WidgetNode> {
+  ): Promise<null | WidgetNode | SectionNode> {
     widgetNode =
       widgetNode || ((await getNodeByIdAsync(widgetNodeId)) as WidgetNode);
     if (!widgetNode) {
@@ -317,12 +282,57 @@ function Widget() {
       step,
       wave,
     });
-    if (!oneOff) {
-      clone.y = widgetNode.y + widgetNode.height + 10;
-      currentPage.selection = [clone];
-      await openUI();
+    if (combo === "one") {
+      if (!oneOff) {
+        clone.y = widgetNode.y + widgetNode.height + 10;
+        currentPage.selection = [clone];
+        await openUI();
+      }
+      return clone;
+    } else {
+      const sectionGap = 50;
+      const section = figma.createSection();
+      const sectionX = widgetNode.x;
+      const sectionY = widgetNode.y + widgetNode.height + sectionGap;
+      section.resizeWithoutConstraints(
+        NODE_DIAMETER * 3 + sectionGap * 4,
+        NODE_DIAMETER + sectionGap * 2
+      );
+      const thirdIndex = (step + (combo === "maj" ? 4 : 3)) % notes.length;
+      const third = (await handleNoteClick(
+        notes[thirdIndex],
+        thirdIndex,
+        octave,
+        wave,
+        "one",
+        widgetNode,
+        true
+      )) as WidgetNode;
+      const fifthIndex = (step + 7) % notes.length;
+      const fifth = (await handleNoteClick(
+        notes[fifthIndex],
+        fifthIndex,
+        octave,
+        wave,
+        "one",
+        widgetNode,
+        true
+      )) as WidgetNode;
+      section.x = sectionX;
+      section.y = sectionY;
+      section.name = `${note} ${symphonyCombo}`;
+      section.appendChild(clone);
+      section.appendChild(third);
+      section.appendChild(fifth);
+      clone.x = sectionGap;
+      clone.y = sectionGap;
+      third.x = sectionGap + NODE_DIAMETER + sectionGap;
+      third.y = sectionGap;
+      fifth.x =
+        sectionGap + NODE_DIAMETER + sectionGap + NODE_DIAMETER + sectionGap;
+      fifth.y = sectionGap;
+      return section;
     }
-    return clone;
   }
 
   if (mode === "symphony") {
@@ -367,7 +377,13 @@ function Widget() {
                 verticalAlignItems="center"
                 horizontalAlignItems="center"
                 onClick={() =>
-                  handleNoteClick(note, i, symphonyOctave, symphonyWave)
+                  handleNoteClick(
+                    note,
+                    i,
+                    symphonyOctave,
+                    symphonyWave,
+                    symphonyCombo
+                  )
                 }
                 hoverStyle={{ opacity: 0.7 }}
                 height={note.match("#") ? heightBlack : heightWhite}
@@ -394,7 +410,13 @@ function Widget() {
                 verticalAlignItems="center"
                 horizontalAlignItems="center"
                 onClick={() =>
-                  handleNoteClick(note, i, symphonyOctave, symphonyWave)
+                  handleNoteClick(
+                    note,
+                    i,
+                    symphonyOctave,
+                    symphonyWave,
+                    symphonyCombo
+                  )
                 }
                 hoverStyle={{ fill: "#333" }}
                 height={note.match("#") ? heightBlack : heightWhite}
@@ -463,6 +485,51 @@ function Widget() {
             </AutoLayout>
           ))}
         </AutoLayout>
+        <AutoLayout
+          direction="horizontal"
+          width="fill-parent"
+          cornerRadius={16}
+          spacing={2}
+        >
+          {combos.map((combo, i) => (
+            <AutoLayout
+              key={combo}
+              direction="vertical"
+              fill={combo === symphonyCombo ? "#000" : "#eee"}
+              padding={20}
+              horizontalAlignItems="center"
+              cornerRadius={{
+                topLeft: i === 0 ? 12 : 0,
+                bottomLeft: i === 0 ? 12 : 0,
+                topRight: i === combos.length - 1 ? 12 : 0,
+                bottomRight: i === combos.length - 1 ? 12 : 0,
+              }}
+              width="fill-parent"
+              onClick={() => setSymphonyCombo(combo)}
+            >
+              <Text
+                fontSize={30}
+                fontWeight="black"
+                fill={combo === symphonyCombo ? "#fff" : "#000"}
+              >
+                {combo}
+              </Text>
+            </AutoLayout>
+          ))}
+        </AutoLayout>
+        <AutoLayout
+          direction="vertical"
+          fill={"#000"}
+          padding={20}
+          horizontalAlignItems="center"
+          cornerRadius={12}
+          width="fill-parent"
+          onClick={async () => await openUI()}
+        >
+          <Text fontSize={30} fontWeight="black" fill={"#fff"}>
+            Open Player
+          </Text>
+        </AutoLayout>
       </AutoLayout>
     );
   } else if (mode === "sound") {
@@ -493,7 +560,7 @@ function Widget() {
             offset: { x: 0, y: 2 },
           }}
         >
-          {note} ({step})
+          {note}
         </Text>
         <SVG
           src={svgWideFromWave(wave, "#FFF")}
