@@ -46,6 +46,7 @@ $proximity.addEventListener("change", onProximityChange);
 const $rate = document.getElementById("rate") as HTMLInputElement;
 $rate.addEventListener("input", onRateChange);
 const $rateValue = document.getElementById("rate-value") as HTMLSpanElement;
+const $tick = document.getElementById("tick") as HTMLSpanElement;
 let context: AudioContext;
 
 onRateChange();
@@ -152,8 +153,7 @@ async function onListeningChange() {
       Object.assign(oscillators, newOscillators);
       beats.calc();
       if (nothing) beats.reset();
-      // @ts-expect-error
-      document.getElementById("tick").innerText = beats.step;
+      $tick.innerText = (beats.step % 16) + 1;
       const beat = { step: beats.step, change: beats.change };
       const pluginMessage: PingMessage = { type: "PING", beat };
       setTimeout(() => {

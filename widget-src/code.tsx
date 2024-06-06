@@ -70,7 +70,9 @@ function Widget() {
             c.connectorStart.endpointNodeId === node.id
         );
         for (let start of starts) {
-          const length = start.text.characters.length || 1;
+          const length = start.text.characters.match(/^\d+$/)
+            ? parseInt(start.text.characters)
+            : start.text.characters.length || 1;
           const next = await findNextNodeFromConnector(start);
           if (next && !nextNodes.includes(node)) {
             if (step % length === 0) {
@@ -186,8 +188,7 @@ function Widget() {
   const [step] = useSyncedState("step", 0);
   const [wave] = useSyncedState("wave", "undefined");
 
-  // const octaves = [1, 2, 3, 4, 5, 6];
-  const octaves = [2, 3, 4];
+  const octaves = [1, 2, 3, 4, 5];
   const notes = [
     "C",
     "C#",
@@ -526,9 +527,9 @@ function Widget() {
           width="fill-parent"
           onClick={async () => await openUI()}
         >
-          <Text fontSize={30} fontWeight="black" fill={"#fff"}>
-            Open Player
-          </Text>
+          <SVG
+            src={`<svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 36V24C6 19.2261 7.89642 14.6477 11.2721 11.2721C14.6477 7.89642 19.2261 6 24 6C28.7739 6 33.3523 7.89642 36.7279 11.2721C40.1036 14.6477 42 19.2261 42 24V36M42 38C42 39.0609 41.5786 40.0783 40.8284 40.8284C40.0783 41.5786 39.0609 42 38 42H36C34.9391 42 33.9217 41.5786 33.1716 40.8284C32.4214 40.0783 32 39.0609 32 38V32C32 30.9391 32.4214 29.9217 33.1716 29.1716C33.9217 28.4214 34.9391 28 36 28H42V38ZM6 38C6 39.0609 6.42143 40.0783 7.17157 40.8284C7.92172 41.5786 8.93913 42 10 42H12C13.0609 42 14.0783 41.5786 14.8284 40.8284C15.5786 40.0783 16 39.0609 16 38V32C16 30.9391 15.5786 29.9217 14.8284 29.1716C14.0783 28.4214 13.0609 28 12 28H6V38Z" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>`}
+          />
         </AutoLayout>
       </AutoLayout>
     );
@@ -613,16 +614,6 @@ function svgWideFromWave(wave: string, fill: string) {
     triangle: `<path d="M27.205 1.5793C25.6444 0.0260638 23.122 0.0260571 21.5615 1.57928L1.46695 21.5793C-0.0988233 23.1377 -0.104793 25.6703 1.45362 27.2361C3.01203 28.8019 5.54468 28.8079 7.11046 27.2495L24.3832 10.058L40.8325 26.4301C41.0005 26.7178 41.2076 26.989 41.4535 27.2361C43.0119 28.8019 45.5446 28.8079 47.1104 27.2495L64.3831 10.058L80.8324 26.4301C81.0005 26.7178 81.2075 26.989 81.4534 27.2361C83.0118 28.8019 85.5445 28.8079 87.1103 27.2495L104.383 10.058L120.832 26.4301C121 26.7178 121.207 26.989 121.453 27.2361C123.012 28.8019 125.544 28.8079 127.11 27.2495L144.383 10.058L160.832 26.4301C161 26.7177 161.207 26.989 161.453 27.2361C163.012 28.8019 165.544 28.8079 167.11 27.2495L184.383 10.058L200.832 26.4301C201 26.7177 201.207 26.989 201.453 27.2361C203.012 28.8019 205.544 28.8079 207.11 27.2495L224.383 10.058L241.466 27.0614C243.032 28.6199 245.565 28.6139 247.123 27.0481C248.682 25.4824 248.676 22.9497 247.11 21.3913L227.204 1.5793C225.644 0.0260638 223.122 0.0260571 221.561 1.57928L204.383 18.6768L187.205 1.5793C185.644 0.0260638 183.122 0.0260571 181.561 1.57928L164.383 18.6768L147.205 1.5793C145.644 0.0260638 143.122 0.0260571 141.561 1.57928L124.383 18.6768L107.205 1.5793C105.644 0.0260638 103.122 0.0260571 101.561 1.57928L84.383 18.6768L67.2049 1.5793C65.6443 0.0260638 63.1219 0.0260571 61.5614 1.57928L44.3831 18.6768L27.205 1.5793Z" />`,
   }[wave];
   return `<svg width="249" height="29" viewBox="0 0 249 29" fill="${fill}" xmlns="http://www.w3.org/2000/svg">${path}</svg>`;
-}
-
-function svgShapeFromWave(wave: string, fill: string, stroke: string) {
-  let path = {
-    sawtooth: `<path d="M5 95L95 5,95 95Z" />`,
-    sine: `<circle cx="50" cy="50" r="45" />`,
-    square: `<rect x="5" y="5" width="90" height="90" />`,
-    triangle: `<path d="M5 95L95 95,50 5Z" />`,
-  }[wave];
-  return `<svg viewBox="0 0 100 100" height="100" width="100" fill="${fill}" stroke="${stroke}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
 }
 
 function frequencyFromOctaveAndStep(octave: number, step: number) {
