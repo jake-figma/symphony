@@ -264,6 +264,23 @@ function Widget() {
     figma.currentPage.selection = selection;
   }
 
+  async function handleRestClick() {
+    const widgetNode = (await getNodeByIdAsync(widgetNodeId)) as WidgetNode;
+    if (!widgetNode) {
+      return null;
+    }
+    const clone = widgetNode.cloneWidget({
+      mode: "rest",
+      frequency: 0,
+      octave: 0,
+      note: "REST",
+      step: 0,
+      wave: "sine",
+    });
+    clone.y = widgetNode.y + widgetNode.height + 10;
+    currentPage.selection = [clone];
+  }
+
   async function handleNoteClick(
     note: string,
     step: number,
@@ -521,18 +538,34 @@ function Widget() {
             </AutoLayout>
           ))}
         </AutoLayout>
-        <AutoLayout
-          direction="vertical"
-          fill={"#000"}
-          padding={20}
-          horizontalAlignItems="center"
-          cornerRadius={12}
-          width="fill-parent"
-          onClick={async () => await openUI()}
-        >
-          <SVG
-            src={`<svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 36V24C6 19.2261 7.89642 14.6477 11.2721 11.2721C14.6477 7.89642 19.2261 6 24 6C28.7739 6 33.3523 7.89642 36.7279 11.2721C40.1036 14.6477 42 19.2261 42 24V36M42 38C42 39.0609 41.5786 40.0783 40.8284 40.8284C40.0783 41.5786 39.0609 42 38 42H36C34.9391 42 33.9217 41.5786 33.1716 40.8284C32.4214 40.0783 32 39.0609 32 38V32C32 30.9391 32.4214 29.9217 33.1716 29.1716C33.9217 28.4214 34.9391 28 36 28H42V38ZM6 38C6 39.0609 6.42143 40.0783 7.17157 40.8284C7.92172 41.5786 8.93913 42 10 42H12C13.0609 42 14.0783 41.5786 14.8284 40.8284C15.5786 40.0783 16 39.0609 16 38V32C16 30.9391 15.5786 29.9217 14.8284 29.1716C14.0783 28.4214 13.0609 28 12 28H6V38Z" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>`}
-          />
+        <AutoLayout spacing={20} width="fill-parent">
+          <AutoLayout
+            direction="vertical"
+            fill={"#fff"}
+            hoverStyle={{ fill: "#eee" }}
+            padding={20}
+            horizontalAlignItems="center"
+            cornerRadius={12}
+            width={80}
+            onClick={() => handleRestClick()}
+          >
+            <Text fontSize={24} fontWeight="black" fill="#000">
+              R
+            </Text>
+          </AutoLayout>
+          <AutoLayout
+            direction="vertical"
+            fill={"#000"}
+            padding={20}
+            horizontalAlignItems="center"
+            cornerRadius={12}
+            width="fill-parent"
+            onClick={async () => await openUI()}
+          >
+            <SVG
+              src={`<svg width="28" height="28" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 36V24C6 19.2261 7.89642 14.6477 11.2721 11.2721C14.6477 7.89642 19.2261 6 24 6C28.7739 6 33.3523 7.89642 36.7279 11.2721C40.1036 14.6477 42 19.2261 42 24V36M42 38C42 39.0609 41.5786 40.0783 40.8284 40.8284C40.0783 41.5786 39.0609 42 38 42H36C34.9391 42 33.9217 41.5786 33.1716 40.8284C32.4214 40.0783 32 39.0609 32 38V32C32 30.9391 32.4214 29.9217 33.1716 29.1716C33.9217 28.4214 34.9391 28 36 28H42V38ZM6 38C6 39.0609 6.42143 40.0783 7.17157 40.8284C7.92172 41.5786 8.93913 42 10 42H12C13.0609 42 14.0783 41.5786 14.8284 40.8284C15.5786 40.0783 16 39.0609 16 38V32C16 30.9391 15.5786 29.9217 14.8284 29.1716C14.0783 28.4214 13.0609 28 12 28H6V38Z" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>`}
+            />
+          </AutoLayout>
         </AutoLayout>
       </AutoLayout>
     );
@@ -592,6 +625,36 @@ function Widget() {
           }}
         >
           {octave}
+        </Text>
+      </AutoLayout>
+    );
+  } else if (mode === "rest") {
+    return (
+      <AutoLayout
+        verticalAlignItems="center"
+        horizontalAlignItems="center"
+        direction="vertical"
+        cornerRadius={NODE_DIAMETER}
+        spacing={NODE_DIAMETER * 0.05}
+        stroke={"#000000dd"}
+        fill={"#00000099"}
+        height={NODE_DIAMETER}
+        width={NODE_DIAMETER}
+      >
+        <Text
+          fontWeight="extra-bold"
+          fontSize={NODE_FONT_SIZE}
+          fill="#fff"
+          horizontalAlignText="center"
+          verticalAlignText="center"
+          effect={{
+            type: "drop-shadow",
+            blur: 4,
+            color: { r: 0, g: 0, b: 0, a: 0.1 },
+            offset: { x: 0, y: 2 },
+          }}
+        >
+          REST
         </Text>
       </AutoLayout>
     );

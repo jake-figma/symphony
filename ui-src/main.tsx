@@ -135,14 +135,17 @@ async function onListeningChange() {
               const { oscillators } = users[sessionId];
               const oscillator = context.createOscillator();
               const gain = context.createGain();
+              gain.gain.value = 0;
               oscillator.frequency.value = oscillators[oscillatorId].frequency;
               oscillator.type = oscillators[oscillatorId].wave;
               oscillator.connect(gain);
-              gain.gain.value = 0;
-              gain.gain.linearRampToValueAtTime(
-                (oscillator.type === "square" ? 0.1 : 0.15) * loudnessFactor,
-                context.currentTime + 0.125
-              );
+              // Rests come in as frequency 0
+              if (oscillators[oscillatorId].frequency > 0) {
+                gain.gain.linearRampToValueAtTime(
+                  (oscillator.type === "square" ? 0.1 : 0.15) * loudnessFactor,
+                  context.currentTime + 0.125
+                );
+              }
               oscillator.start(context.currentTime);
               gain.connect(context.destination);
               newOscillators[sessionOscillatorId] = { oscillator, gain };
