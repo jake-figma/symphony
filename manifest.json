@@ -8,7 +8,7 @@
   "documentAccess": "dynamic-page",
   "main": "dist/code.js",
   "networkAccess": {
-    "allowedDomains": ["http://localhost:8000"],
+    "allowedDomains": ["http://localhost:8000", "https://jake-figma.github.io"],
     "reasoning": "Makes noise"
   },
   "widgetApi": "1.0.0"

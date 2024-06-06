@@ -143,13 +143,15 @@ async function onListeningChange() {
       const beat = { step: beats.step, change: beats.change };
       const pluginMessage: PingMessage = { type: "PING", beat };
       setTimeout(() => {
-        parent.postMessage(
-          {
-            pluginMessage,
-            pluginId: "1365528382821091411",
-          },
-          "*"
-        );
+        if (!MUTE) {
+          parent.postMessage(
+            {
+              pluginMessage,
+              pluginId: "1365528382821091411",
+            },
+            "*"
+          );
+        }
       }, 50);
     }
   };

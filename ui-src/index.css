@@ -37,11 +37,11 @@ label {
 }
 [for="rate"] {
   flex-wrap: wrap;
+}
 
-  input {
-    margin: 0;
-    width: 100%;
-  }
+[for="rate"] input {
+  margin: 0;
+  width: 100%;
 }
 
 input:disabled + * {
