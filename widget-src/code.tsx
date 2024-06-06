@@ -573,89 +573,97 @@ function Widget() {
     const svgWidth = NODE_DIAMETER * 1.1;
     const svgHeight = (29 / 249) * svgWidth;
     return (
-      <AutoLayout
-        verticalAlignItems="center"
-        horizontalAlignItems="center"
-        direction="vertical"
-        cornerRadius={NODE_DIAMETER}
-        spacing={NODE_DIAMETER * 0.05}
-        stroke={fillFromStepAndOctave(step, octave, "dd")}
-        fill={fillFromStepAndOctave(step, octave, "99")}
-        height={NODE_DIAMETER}
-        width={NODE_DIAMETER}
-      >
-        <Text
-          fontWeight="extra-bold"
-          fontSize={NODE_FONT_SIZE}
-          fill="#fff"
-          horizontalAlignText="center"
-          verticalAlignText="center"
-          effect={{
-            type: "drop-shadow",
-            blur: 4,
-            color: { r: 0, g: 0, b: 0, a: 0.1 },
-            offset: { x: 0, y: 2 },
-          }}
+      <AutoLayout padding={4}>
+        <AutoLayout
+          verticalAlignItems="center"
+          horizontalAlignItems="center"
+          direction="vertical"
+          cornerRadius={NODE_DIAMETER}
+          spacing={NODE_DIAMETER * 0.05}
+          stroke={fillFromStepAndOctave(step, octave, "dd")}
+          strokeAlign="outside"
+          strokeWidth={4}
+          fill={fillFromStepAndOctave(step, octave, "99")}
+          height={NODE_DIAMETER - 4}
+          width={NODE_DIAMETER - 4}
         >
-          {note}
-        </Text>
-        <SVG
-          src={svgWideFromWave(wave, "#FFF")}
-          height={svgHeight}
-          width={svgWidth}
-          effect={{
-            type: "drop-shadow",
-            blur: 4,
-            color: { r: 0, g: 0, b: 0, a: 0.1 },
-            offset: { x: 0, y: 2 },
-          }}
-        />
-        <Text
-          fontWeight="extra-bold"
-          fontSize={NODE_FONT_SIZE}
-          fill="#fff"
-          horizontalAlignText="center"
-          verticalAlignText="center"
-          width={NODE_DIAMETER}
-          effect={{
-            type: "drop-shadow",
-            blur: 4,
-            color: { r: 0, g: 0, b: 0, a: 0.1 },
-            offset: { x: 0, y: 2 },
-          }}
-        >
-          {octave}
-        </Text>
+          <Text
+            fontWeight="extra-bold"
+            fontSize={NODE_FONT_SIZE}
+            fill="#fff"
+            horizontalAlignText="center"
+            verticalAlignText="center"
+            effect={{
+              type: "drop-shadow",
+              blur: 4,
+              color: { r: 0, g: 0, b: 0, a: 0.1 },
+              offset: { x: 0, y: 2 },
+            }}
+          >
+            {note}
+          </Text>
+          <SVG
+            src={svgWideFromWave(wave, "#FFF")}
+            height={svgHeight}
+            width={svgWidth}
+            effect={{
+              type: "drop-shadow",
+              blur: 4,
+              color: { r: 0, g: 0, b: 0, a: 0.1 },
+              offset: { x: 0, y: 2 },
+            }}
+          />
+          <Text
+            fontWeight="extra-bold"
+            fontSize={NODE_FONT_SIZE}
+            fill="#fff"
+            horizontalAlignText="center"
+            verticalAlignText="center"
+            width={NODE_DIAMETER}
+            effect={{
+              type: "drop-shadow",
+              blur: 4,
+              color: { r: 0, g: 0, b: 0, a: 0.1 },
+              offset: { x: 0, y: 2 },
+            }}
+          >
+            {octave}
+          </Text>
+        </AutoLayout>
       </AutoLayout>
     );
   } else if (mode === "rest") {
     return (
-      <AutoLayout
-        verticalAlignItems="center"
-        horizontalAlignItems="center"
-        direction="vertical"
-        cornerRadius={NODE_DIAMETER}
-        spacing={NODE_DIAMETER * 0.05}
-        stroke={"#000000dd"}
-        fill={"#00000099"}
-        height={NODE_DIAMETER}
-        width={NODE_DIAMETER}
-      >
-        <Text
-          fontWeight="extra-bold"
-          fontSize={NODE_FONT_SIZE}
-          fill="#fff"
-          horizontalAlignText="center"
-          verticalAlignText="center"
-          effect={{
-            type: "drop-shadow",
-            blur: 4,
-            color: { r: 0, g: 0, b: 0, a: 0.1 },
-            offset: { x: 0, y: 2 },
-          }}
+      <AutoLayout padding={4}>
+        <AutoLayout
+          verticalAlignItems="center"
+          horizontalAlignItems="center"
+          direction="vertical"
+          cornerRadius={NODE_DIAMETER}
+          spacing={NODE_DIAMETER * 0.05}
+          stroke={"#000000dd"}
+          fill={"#00000099"}
+          strokeAlign="outside"
+          strokeWidth={4}
+          height={NODE_DIAMETER - 4}
+          width={NODE_DIAMETER - 4}
         >
-          REST
-        </Text>
+          <Text
+            fontWeight="extra-bold"
+            fontSize={NODE_FONT_SIZE}
+            fill="#fff"
+            horizontalAlignText="center"
+            verticalAlignText="center"
+            effect={{
+              type: "drop-shadow",
+              blur: 4,
+              color: { r: 0, g: 0, b: 0, a: 0.1 },
+              offset: { x: 0, y: 2 },
+            }}
+          >
+            REST
+          </Text>
+        </AutoLayout>
       </AutoLayout>
     );
   }
