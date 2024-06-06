@@ -1,3 +1,3 @@
 # Symphony
 
-Make music with your friends in Figma, or build out wonderful compositions.
+A Figma widget for making music with your friends or building wonderful compositions.
