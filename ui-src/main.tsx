@@ -16,7 +16,7 @@ let USE_PROXIMITY = false;
 let USE_MULTIPLAYER = false;
 let MUTE = true;
 const beats = {
-  rate: 10,
+  rate: 8,
   inc: 0,
   step: 0,
   change: false,
@@ -61,7 +61,7 @@ function onProximityChange() {
 }
 function onRateChange() {
   beats.rate =
-    parseInt($rate.getAttribute("max") || "20") + 1 - parseInt($rate.value);
+    parseInt($rate.getAttribute("max") || "16") + 1 - parseInt($rate.value);
   $rateValue.innerText = $rate.value;
 }
 
@@ -153,7 +153,11 @@ async function onListeningChange() {
       Object.assign(oscillators, newOscillators);
       beats.calc();
       if (nothing) beats.reset();
-      $tick.innerText = (beats.step % 16) + 1;
+      $tick.innerText = [
+        (Math.floor(beats.step / 16) % 4) + 1,
+        (Math.floor(beats.step / 4) % 4) + 1,
+        (beats.step % 4) + 1,
+      ].join(".");
       const beat = { step: beats.step, change: beats.change };
       const pluginMessage: PingMessage = { type: "PING", beat };
       setTimeout(() => {

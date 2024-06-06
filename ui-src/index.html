@@ -9,24 +9,24 @@
 
 <body>
   <main>
-    <p><strong>Symphony</strong></p>
+    <p><strong>Symphony</strong> <span id="tick">1.1.1</span></p>
     <label for="listening">
       <input id="listening" type="checkbox">
-      <span>Listening</span>
+      <span>Enable</span>
     </label>
-    <label for="proximity">
+    <label for="rate">
+      <span>Speed (<span id="rate-value">8</span>)</span>
+      <input id="rate" type="range" min="1" max="16" value="8" disabled>
+    </label>
+    <label for="proximity" title="Only hear what is close to your cursor">
       <input id="proximity" type="checkbox" disabled>
       <span>Proximity</span>
     </label>
-    <label for="multiplayer">
+    <label for="multiplayer" title="Hear what other users are selecting">
       <input id="multiplayer" type="checkbox" disabled>
       <span>Multiplayer</span>
     </label>
-    <label for="rate">
-      <input id="rate" type="range" min="1" max="20" value="10" disabled>
-      <span>Rate (<span id="rate-value">10</span>)</span>
-    </label>
-    <span id="tick"></span>
+
   </main>
   <script type="module" src="./main.tsx"></script>
 </body>

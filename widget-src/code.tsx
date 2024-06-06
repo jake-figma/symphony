@@ -7,7 +7,10 @@ import {
 
 const { currentPage, getNodeByIdAsync, widget } = figma;
 // const url = "http://localhost:8000";
-const url = "https://jake-figma.github.io/symphony/";
+const url: string = "https://jake-figma.github.io/symphony/";
+if (url === "http://localhost:8000") {
+  figma.notify("This is pointed to localhost", { error: true });
+}
 const widgetId = "1365528382821091411";
 const {
   AutoLayout,
@@ -31,8 +34,8 @@ async function openUI() {
     figma.showUI(
       `<script>window.location.href = "${url}?${Date.now()}"</script>`,
       {
-        width: 200,
-        height: 200,
+        width: 140,
+        height: 160,
       }
     );
   });
@@ -349,8 +352,8 @@ function Widget() {
         fill="#f9f9f9"
         stroke="#EEE"
         strokeWidth={8}
-        strokeAlign="outside"
-        padding={20}
+        strokeAlign="inside"
+        padding={30}
         spacing={20}
         horizontalAlignItems="center"
       >
@@ -509,11 +512,11 @@ function Widget() {
               onClick={() => setSymphonyCombo(combo)}
             >
               <Text
-                fontSize={30}
+                fontSize={24}
                 fontWeight="black"
                 fill={combo === symphonyCombo ? "#fff" : "#000"}
               >
-                {combo}
+                {combo.toUpperCase()}
               </Text>
             </AutoLayout>
           ))}
