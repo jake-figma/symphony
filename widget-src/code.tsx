@@ -43,8 +43,6 @@ async function openUI() {
 }
 
 function Widget() {
-  console.clear();
-
   const sustains = useSyncedMap<[number, number]>("node-sustain");
 
   useEffect(() => {

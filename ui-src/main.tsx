@@ -4,6 +4,7 @@ import {
   messageIsPongMessage,
 } from "../widget-src/shared";
 import "./index.css";
+import { Metronome } from "./metronome";
 
 type OscillatorMap = {
   [sessionOscillatorId: string]: {
@@ -12,26 +13,21 @@ type OscillatorMap = {
   };
 };
 
+console.clear();
+
 let USE_PROXIMITY = false;
 let USE_MULTIPLAYER = false;
 let MUTE = true;
 const beats = {
-  rate: 8,
-  inc: 0,
   step: 0,
   change: false,
   reset() {
     this.step = 0;
-    this.inc = 0;
+    this.change = false;
   },
   calc() {
-    this.inc++;
-    if (this.inc % this.rate === 0) {
-      this.step++;
-      this.change = true;
-    } else {
-      this.change = false;
-    }
+    this.step++;
+    this.change = true;
   },
 };
 
@@ -48,6 +44,7 @@ $rate.addEventListener("input", onRateChange);
 const $rateValue = document.getElementById("rate-value") as HTMLSpanElement;
 const $tick = document.getElementById("tick") as HTMLSpanElement;
 let context: AudioContext;
+let metronome: Metronome;
 
 onRateChange();
 onProximityChange();
@@ -60,8 +57,7 @@ function onProximityChange() {
   USE_PROXIMITY = $proximity.checked;
 }
 function onRateChange() {
-  beats.rate =
-    parseInt($rate.getAttribute("max") || "16") + 1 - parseInt($rate.value);
+  if (metronome) metronome.tempo = parseInt($rate.value);
   $rateValue.innerText = $rate.value;
 }
 
@@ -77,12 +73,37 @@ async function onListeningChange() {
       });
       delete oscillators[sessionOscillatorId];
     }
+    metronome.play();
     return;
   }
   $multiplayer.removeAttribute("disabled");
   $proximity.removeAttribute("disabled");
   $rate.removeAttribute("disabled");
   context = context || new AudioContext();
+
+  metronome = new Metronome(context, () => {
+    beats.calc();
+    $tick.innerText = [
+      (Math.floor(beats.step / 16) % 4) + 1,
+      (Math.floor(beats.step / 4) % 4) + 1,
+      (beats.step % 4) + 1,
+    ].join(".");
+    const beat = { step: beats.step, change: beats.change };
+    const pluginMessage: PingMessage = { type: "PING", beat };
+    if (MUTE) {
+      beats.reset();
+    } else {
+      parent.postMessage(
+        {
+          pluginMessage,
+          pluginId: "1365528382821091411",
+        },
+        "*"
+      );
+    }
+  });
+  metronome.initialize();
+  metronome.tempo = parseInt($rate.value);
 
   window.onmessage = ({ data }) => {
     const message = data.pluginMessage;
@@ -154,28 +175,7 @@ async function onListeningChange() {
         }
       }
       Object.assign(oscillators, newOscillators);
-      beats.calc();
       if (nothing) beats.reset();
-      $tick.innerText = [
-        (Math.floor(beats.step / 16) % 4) + 1,
-        (Math.floor(beats.step / 4) % 4) + 1,
-        (beats.step % 4) + 1,
-      ].join(".");
-      const beat = { step: beats.step, change: beats.change };
-      const pluginMessage: PingMessage = { type: "PING", beat };
-      setTimeout(() => {
-        if (MUTE) {
-          beats.reset();
-        } else {
-          parent.postMessage(
-            {
-              pluginMessage,
-              pluginId: "1365528382821091411",
-            },
-            "*"
-          );
-        }
-      }, 50);
     }
   };
 
