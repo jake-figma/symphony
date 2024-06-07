@@ -20,6 +20,7 @@ const {
   useEffect,
   usePropertyMenu,
   useSyncedState,
+  useSyncedMap,
   useWidgetNodeId,
 } = widget;
 
@@ -43,6 +44,8 @@ async function openUI() {
 
 function Widget() {
   console.clear();
+
+  const sustains = useSyncedMap<[number, number]>("node-sustain");
 
   useEffect(() => {
     figma.ui.onmessage = async (e) => {
@@ -76,10 +79,14 @@ function Widget() {
           const length = start.text.characters.match(/^\d+$/)
             ? parseInt(start.text.characters)
             : start.text.characters.length || 1;
+          const sustainValue = sustains.get(start.id);
+          const index = sustainValue ? sustainValue[1] + 1 : 0;
+          sustains.set(start.id, [length, index]);
           const next = await findNextNodeFromConnector(start);
           if (next && !nextNodes.includes(node)) {
-            if (step % length === 0) {
+            if (index >= length) {
               nextNodes.push(next);
+              sustains.set(start.id, [length, 0]);
             } else {
               nextNodes.push(node);
             }
