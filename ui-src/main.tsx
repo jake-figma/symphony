@@ -219,11 +219,11 @@ async function onListeningChange() {
       (Math.floor(beats.step / 4) % 4) + 1,
       (beats.step % 4) + 1,
     ].join(".");
-    const beat = { step: beats.step, change: beats.change };
-    const pluginMessage: PingMessage = { type: "PING", beat };
     if (MUTE) {
       beats.reset();
     } else {
+      const beat = { step: beats.step, change: beats.change };
+      const pluginMessage: PingMessage = { type: "PING", beat };
       parent.postMessage(
         {
           pluginMessage,
