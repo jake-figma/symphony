@@ -95,27 +95,31 @@ function Widget() {
               "endpointNodeId" in c.connectorStart &&
               c.connectorStart.endpointNodeId === node.id
           );
-          for (let start of starts) {
-            const match = start.text.characters.match(/^(\d+)(:(\d+))?$/);
-            // asdf
-            const [_match, length, _colon, position = "1"] = match || [
-              "",
-              "1",
-              ":",
-              "1",
-            ];
-            const next = await findNextNodeFromConnector(start);
-            if (next) {
-              const pos = parseInt(position);
-              const len = parseInt(length);
-              if (pos >= len) {
-                start.text.characters = length;
-                nextNodes.push(next);
-              } else {
-                start.text.characters = `${length}:${pos + 1}`;
-                if (!nextNodes.includes(node)) nextNodes.push(node);
+          if (starts.length) {
+            for (let start of starts) {
+              const match = start.text.characters.match(/^(\d+)(:(\d+))?$/);
+              // asdf
+              const [_match, length, _colon, position = "1"] = match || [
+                "",
+                "1",
+                ":",
+                "1",
+              ];
+              const next = await findNextNodeFromConnector(start);
+              if (next) {
+                const pos = parseInt(position);
+                const len = parseInt(length);
+                if (pos >= len) {
+                  start.text.characters = length;
+                  nextNodes.push(next);
+                } else {
+                  start.text.characters = `${length}:${pos + 1}`;
+                  if (!nextNodes.includes(node)) nextNodes.push(node);
+                }
               }
             }
+          } else if (!nextNodes.includes(node)) {
+            nextNodes.push(node);
           }
         }
       })
@@ -223,7 +227,7 @@ function Widget() {
   const [note] = useSyncedState("note", "undefined");
   const [step] = useSyncedState("step", 0);
   const [wave] = useSyncedState("wave", "undefined");
-  const [version] = useSyncedState("version", "1.1");
+  const [version] = useSyncedState("version", "1.2");
   const [showInfo, setShowInfo] = useSyncedState("show-info", false);
 
   const octaves = [1, 2, 3, 4, 5, 6];
@@ -694,8 +698,8 @@ function Widget() {
           direction="vertical"
           cornerRadius={NODE_DIAMETER}
           spacing={NODE_DIAMETER * 0.05}
-          stroke={"#000000dd"}
-          fill={"#00000099"}
+          stroke={"#000000ff"}
+          fill={"#000000ee"}
           strokeAlign="outside"
           strokeWidth={4}
           height={NODE_DIAMETER - 4}
