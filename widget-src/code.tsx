@@ -20,7 +20,6 @@ const {
   useEffect,
   usePropertyMenu,
   useSyncedState,
-  useSyncedMap,
   useWidgetNodeId,
 } = widget;
 
@@ -31,6 +30,7 @@ const NODE_DIAMETER = 160;
 const NODE_FONT_SIZE = 30;
 
 async function openUI() {
+  await figma.loadFontAsync({ family: "Inter", style: "Medium" });
   return new Promise(() => {
     figma.showUI(
       `<script>window.location.href = "${url}?${Date.now()}"</script>`,
@@ -53,10 +53,32 @@ function Widget() {
         });
       }
     };
+    let selection: SceneNode[] = [];
+    figma.on("selectionchange", () => {
+      if (figma.currentPage.selection.length) {
+        selection.splice(0, selection.length);
+        selection.push(...figma.currentPage.selection);
+      } else {
+        selection.forEach((node) => {
+          if (node) {
+            const starts = node.attachedConnectors.filter(
+              (c) =>
+                "endpointNodeId" in c.connectorStart &&
+                c.connectorStart.endpointNodeId === node.id
+            );
+            for (let start of starts) {
+              const match = start.text.characters.match(/^(\d+)(:(\d+))?$/);
+              const [_match, length, _colon] = match || ["", "1", ":", "0"];
+              start.text.characters = length;
+            }
+          }
+        });
+      }
+    });
   });
 
   async function handleBeat({
-    step,
+    step: _step,
     change,
   }: {
     step: number;
@@ -72,14 +94,22 @@ function Widget() {
             c.connectorStart.endpointNodeId === node.id
         );
         for (let start of starts) {
-          const length = start.text.characters.match(/^\d+$/)
-            ? parseInt(start.text.characters)
-            : start.text.characters.length || 1;
+          const match = start.text.characters.match(/^(\d+)(:(\d+))?$/);
+          const [_match, length, _colon, position = "0"] = match || [
+            "",
+            "1",
+            ":",
+            "0",
+          ];
           const next = await findNextNodeFromConnector(start);
           if (next && !nextNodes.includes(node)) {
-            if (step % length === 0) {
+            const pos = parseInt(position);
+            const len = parseInt(length);
+            if (pos >= len - 1) {
+              start.text.characters = length;
               nextNodes.push(next);
             } else {
+              start.text.characters = `${length}:${pos + 1}`;
               nextNodes.push(node);
             }
           }
