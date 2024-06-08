@@ -175,7 +175,7 @@ async function onListeningChange() {
             "*"
           );
         }
-      }, 50);
+      }, 20);
     }
   };
 

@@ -68,7 +68,7 @@ function Widget() {
             );
             for (let start of starts) {
               const match = start.text.characters.match(/^(\d+)(:(\d+))?$/);
-              const [_match, length, _colon] = match || ["", "1", ":", "0"];
+              const [_match, length] = match || ["", "1"];
               start.text.characters = length;
             }
           }
@@ -95,22 +95,22 @@ function Widget() {
         );
         for (let start of starts) {
           const match = start.text.characters.match(/^(\d+)(:(\d+))?$/);
-          const [_match, length, _colon, position = "0"] = match || [
+          const [_match, length, _colon, position = "1"] = match || [
             "",
             "1",
             ":",
-            "0",
+            "1",
           ];
           const next = await findNextNodeFromConnector(start);
-          if (next && !nextNodes.includes(node)) {
+          if (next) {
             const pos = parseInt(position);
             const len = parseInt(length);
-            if (pos >= len - 1) {
+            if (pos >= len) {
               start.text.characters = length;
               nextNodes.push(next);
             } else {
               start.text.characters = `${length}:${pos + 1}`;
-              nextNodes.push(node);
+              if (!nextNodes.includes(node)) nextNodes.push(node);
             }
           }
         }
