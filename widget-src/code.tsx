@@ -1,5 +1,4 @@
 import {
-  MAX_DISTANCE,
   PongMessagePayload,
   PongMessagePayloadOscillator,
   messageIsPingMessage,
@@ -219,6 +218,7 @@ function Widget() {
   const [note] = useSyncedState("note", "undefined");
   const [step] = useSyncedState("step", 0);
   const [wave] = useSyncedState("wave", "undefined");
+  const [version] = useSyncedState("version", "1");
 
   const octaves = [1, 2, 3, 4, 5];
   const notes = [
@@ -241,56 +241,25 @@ function Widget() {
   usePropertyMenu(
     mode === "symphony"
       ? [
-          // {
-          //   propertyName: "all",
-          //   itemType: "action",
-          //   tooltip: "All",
-          // },
+          {
+            propertyName: "update",
+            itemType: "action",
+            tooltip: "Update Widgets",
+          },
         ]
       : [],
     async (e) => {
-      if (e.propertyName === "all") await generateAll();
+      if (e.propertyName === "update") await updateWidgets();
     }
   );
 
-  async function generateAll() {
-    const widgetNode = (await getNodeByIdAsync(widgetNodeId)) as WidgetNode;
-    const gap = MAX_DISTANCE;
-    const startX = widgetNode.x;
-    const startY = widgetNode.y + widgetNode.height + gap;
-    const selection: SceneNode[] = [];
-    await Promise.all(
-      [...octaves].reverse().map(
-        async (octave, octaveY) =>
-          await Promise.all(
-            [...waves].reverse().map(
-              async (wave, waveY) =>
-                await Promise.all(
-                  notes.map(async (note, i) => {
-                    const node = await handleNoteClick(
-                      note,
-                      i,
-                      octave,
-                      wave,
-                      "one",
-                      widgetNode,
-                      true
-                    );
-                    if (node) {
-                      node.x = startX + i * (NODE_DIAMETER + gap);
-                      node.y =
-                        startY +
-                        waveY * (NODE_DIAMETER + gap) +
-                        octaveY * waves.length * (NODE_DIAMETER + gap);
-                      selection.push(node);
-                    }
-                  })
-                )
-            )
-          )
-      )
+  async function updateWidgets() {
+    const widgets = figma.currentPage.findWidgetNodesByWidgetId(widgetId);
+    figma.currentPage.selection = widgets;
+
+    widgets.forEach((widget) =>
+      widget.setWidgetSyncedState({ ...widget.widgetSyncedState, version })
     );
-    figma.currentPage.selection = selection;
   }
 
   async function handleRestClick() {
