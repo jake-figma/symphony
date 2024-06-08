@@ -59,16 +59,18 @@ function Widget() {
         selection.push(...figma.currentPage.selection);
       } else {
         selection.forEach((node) => {
-          if (node) {
+          if (node && !node.removed) {
             const starts = node.attachedConnectors.filter(
               (c) =>
                 "endpointNodeId" in c.connectorStart &&
                 c.connectorStart.endpointNodeId === node.id
             );
             for (let start of starts) {
-              const match = start.text.characters.match(/^(\d+)(:(\d+))?$/);
-              const [_match, length] = match || ["", "1"];
-              start.text.characters = length;
+              if (start) {
+                const match = start.text.characters.match(/^(\d+)(:(\d+))?$/);
+                const [_match, length] = match || ["", "1"];
+                start.text.characters = length;
+              }
             }
           }
         });
@@ -87,29 +89,32 @@ function Widget() {
     const nextNodes: SceneNode[] = [];
     await Promise.all(
       currentPage.selection.map(async (node) => {
-        const starts = node.attachedConnectors.filter(
-          (c) =>
-            "endpointNodeId" in c.connectorStart &&
-            c.connectorStart.endpointNodeId === node.id
-        );
-        for (let start of starts) {
-          const match = start.text.characters.match(/^(\d+)(:(\d+))?$/);
-          const [_match, length, _colon, position = "1"] = match || [
-            "",
-            "1",
-            ":",
-            "1",
-          ];
-          const next = await findNextNodeFromConnector(start);
-          if (next) {
-            const pos = parseInt(position);
-            const len = parseInt(length);
-            if (pos >= len) {
-              start.text.characters = length;
-              nextNodes.push(next);
-            } else {
-              start.text.characters = `${length}:${pos + 1}`;
-              if (!nextNodes.includes(node)) nextNodes.push(node);
+        if (node && !node.removed) {
+          const starts = node.attachedConnectors.filter(
+            (c) =>
+              "endpointNodeId" in c.connectorStart &&
+              c.connectorStart.endpointNodeId === node.id
+          );
+          for (let start of starts) {
+            const match = start.text.characters.match(/^(\d+)(:(\d+))?$/);
+            // asdf
+            const [_match, length, _colon, position = "1"] = match || [
+              "",
+              "1",
+              ":",
+              "1",
+            ];
+            const next = await findNextNodeFromConnector(start);
+            if (next) {
+              const pos = parseInt(position);
+              const len = parseInt(length);
+              if (pos >= len) {
+                start.text.characters = length;
+                nextNodes.push(next);
+              } else {
+                start.text.characters = `${length}:${pos + 1}`;
+                if (!nextNodes.includes(node)) nextNodes.push(node);
+              }
             }
           }
         }
@@ -134,7 +139,7 @@ function Widget() {
     const widgets: { [k: string]: PongMessagePayloadOscillator } = {};
     currentPage.findWidgetNodesByWidgetId(widgetId).forEach((widget) => {
       const { mode, frequency, wave } = widget.widgetSyncedState;
-      if (mode !== "symphony") {
+      if (mode !== "symphony" && widget) {
         widgets[widget.id] = {
           frequency,
           wave,
@@ -218,9 +223,10 @@ function Widget() {
   const [note] = useSyncedState("note", "undefined");
   const [step] = useSyncedState("step", 0);
   const [wave] = useSyncedState("wave", "undefined");
-  const [version] = useSyncedState("version", "1");
+  const [version] = useSyncedState("version", "1.1");
+  const [showInfo, setShowInfo] = useSyncedState("show-info", false);
 
-  const octaves = [1, 2, 3, 4, 5];
+  const octaves = [1, 2, 3, 4, 5, 6];
   const notes = [
     "C",
     "C#",
@@ -237,15 +243,20 @@ function Widget() {
   ];
   const waves = ["sine", "triangle", "sawtooth", "square"];
   const combos: Combo[] = ["one", "maj", "min"];
+  const comboLabels: { [K in Combo]: string } = {
+    one: "Note",
+    maj: "Major",
+    min: "Minor",
+  };
 
   usePropertyMenu(
     mode === "symphony"
       ? [
-          {
-            propertyName: "update",
-            itemType: "action",
-            tooltip: "Update Widgets",
-          },
+          // {
+          //   propertyName: "update",
+          //   itemType: "action",
+          //   tooltip: "Update",
+          // },
         ]
       : [],
     async (e) => {
@@ -255,7 +266,7 @@ function Widget() {
 
   async function updateWidgets() {
     const widgets = figma.currentPage.findWidgetNodesByWidgetId(widgetId);
-    figma.currentPage.selection = widgets;
+    // figma.currentPage.selection = widgets;
 
     widgets.forEach((widget) =>
       widget.setWidgetSyncedState({ ...widget.widgetSyncedState, version })
@@ -355,28 +366,91 @@ function Widget() {
   }
 
   if (mode === "symphony") {
-    const gap = 8;
-    const width = 40;
-    const pad = 10;
+    const keyGap = 8;
+    const keyWidth = 40;
+    const pad = 20;
     const heightBlack = 120;
-    const heightWhite = 200;
+    const heightWhite = 210;
+    const buttonHeight = 60;
+    const keyCorner = 12;
+    const keyCornerOff = 4;
+
+    const infoText = (text: string) =>
+      showInfo && (
+        <AutoLayout padding={{ bottom: 20 }} width="fill-parent">
+          <Text
+            fill="#999"
+            italic
+            fontSize={20}
+            width="fill-parent"
+            horizontalAlignText="center"
+          >
+            {text}
+          </Text>
+        </AutoLayout>
+      );
+
+    const propsBlackButton: Partial<AutoLayoutProps> = {
+      fill: "#000",
+      horizontalAlignItems: "center",
+      verticalAlignItems: "center",
+      cornerRadius: buttonHeight,
+      hoverStyle: { fill: "#222" },
+      height: buttonHeight,
+      width: buttonHeight,
+    };
+    const propsRangeButton = (
+      active: boolean,
+      index: number,
+      lastIndex: number
+    ): Partial<AutoLayoutProps> => ({
+      fill: active ? "#000" : "#eee",
+      hoverStyle: active ? {} : { fill: "#ddd" },
+      cornerRadius: {
+        topLeft: index === 0 ? buttonHeight / 2 : 0,
+        bottomLeft: index === 0 ? buttonHeight / 2 : 0,
+        topRight: index === lastIndex ? buttonHeight / 2 : 0,
+        bottomRight: index === lastIndex ? buttonHeight / 2 : 0,
+      },
+      padding: {
+        right: index === lastIndex ? buttonHeight / 8 : 0,
+        left: index === 0 ? buttonHeight / 8 : 0,
+      },
+      height: buttonHeight * 0.8,
+      verticalAlignItems: "center",
+      horizontalAlignItems: "center",
+      width: "fill-parent",
+    });
+    const propsBlackButtonText: Partial<TextProps> = {
+      fontSize: 20,
+      fontWeight: "black",
+      fill: "#FFF",
+    };
+    const propsRangeText = (active: boolean): Partial<TextProps> => ({
+      fontSize: 20,
+      fontWeight: "black",
+      fill: active ? "#fff" : "#000",
+    });
+    const spacingGap = 20;
+    const iconDimension = 24;
+
     return (
       <AutoLayout
         direction="vertical"
-        cornerRadius={20}
+        cornerRadius={buttonHeight / 2 + 30}
         fill={url === "http://localhost:8000" ? "#F00" : "#f9f9f9"}
         stroke="#EEE"
         strokeWidth={8}
         strokeAlign="inside"
         padding={30}
-        spacing={20}
+        spacing={spacingGap}
         horizontalAlignItems="center"
       >
         <Frame
-          cornerRadius={16}
+          cornerRadius={buttonHeight / 2}
           fill="#eee"
           height={heightWhite + pad + pad}
-          width={width * 7 + gap * (7 - 1) + pad + pad}
+          width={keyWidth * 7 + keyGap * (7 - 1) + pad + pad}
         >
           {notes.map((note, i) => {
             const index = [0, 2, 4, 5, 7, 9, 11].indexOf(i);
@@ -384,12 +458,12 @@ function Widget() {
               <AutoLayout
                 key={note}
                 y={pad}
-                x={pad + index * width + index * gap}
+                x={pad + index * keyWidth + index * keyGap}
                 cornerRadius={{
-                  bottomLeft: 12,
-                  bottomRight: 12,
-                  topLeft: i === 0 ? 12 : 0,
-                  topRight: i === notes.length - 1 ? 12 : 0,
+                  bottomLeft: keyCorner,
+                  bottomRight: keyCorner,
+                  topLeft: i === 0 ? keyCorner : keyCornerOff,
+                  topRight: i === notes.length - 1 ? keyCorner : keyCornerOff,
                 }}
                 direction="vertical"
                 fill={note.match("#") ? "#000" : "#FFF"}
@@ -404,25 +478,32 @@ function Widget() {
                     symphonyCombo
                   )
                 }
-                hoverStyle={{ opacity: 0.7 }}
+                hoverStyle={{ fill: note.match("#") ? "#222" : "#ddd" }}
+                hoverStyle={{ fill: fillFromStepAndOctave(i, 5) }}
                 height={note.match("#") ? heightBlack : heightWhite}
-                width={width}
+                width={keyWidth}
               />
             ) : null;
           })}
           {notes.map((note, i) => {
             const index = [1, 3, 6, 8, 10].indexOf(i);
-            const offset = index > 1 ? width + gap : 0;
+            const offset = index > 1 ? keyWidth + keyGap : 0;
             return index !== -1 ? (
               <AutoLayout
                 key={note}
                 y={pad}
-                x={pad + index * (width + gap) + offset + width / 2 + pad / 2}
+                x={
+                  pad +
+                  index * (keyWidth + keyGap) +
+                  offset +
+                  keyWidth / 2 +
+                  pad / 2
+                }
                 cornerRadius={{
-                  bottomLeft: 12,
-                  bottomRight: 12,
-                  topLeft: i === 0 ? 12 : 0,
-                  topRight: i === notes.length - 1 ? 12 : 0,
+                  bottomLeft: keyCorner,
+                  bottomRight: keyCorner,
+                  topLeft: i === 0 ? keyCorner : keyCornerOff,
+                  topRight: i === notes.length - 1 ? keyCorner : keyCornerOff,
                 }}
                 direction="vertical"
                 fill={note.match("#") ? "#000" : "#FFF"}
@@ -438,65 +519,39 @@ function Widget() {
                   )
                 }
                 hoverStyle={{ fill: "#333" }}
+                hoverStyle={{ fill: fillFromStepAndOctave(i, 5) }}
                 height={note.match("#") ? heightBlack : heightWhite}
-                width={width}
+                width={keyWidth}
               />
             ) : null;
           })}
         </Frame>
-        <AutoLayout
-          direction="horizontal"
-          width="fill-parent"
-          cornerRadius={16}
-          spacing={2}
-        >
+        {infoText("Select note to create nodes")}
+
+        <AutoLayout width="fill-parent" spacing={2}>
           {octaves.map((octave, i) => (
             <AutoLayout
               key={octave}
-              direction="vertical"
-              fill={octave === symphonyOctave ? "#000" : "#eee"}
-              cornerRadius={{
-                topLeft: i === 0 ? 12 : 0,
-                bottomLeft: i === 0 ? 12 : 0,
-                topRight: i === octaves.length - 1 ? 12 : 0,
-                bottomRight: i === octaves.length - 1 ? 12 : 0,
-              }}
-              padding={20}
               onClick={() => setSymphonyOctave(octave)}
-              horizontalAlignItems="center"
-              width="fill-parent"
+              {...propsRangeButton(
+                octave === symphonyOctave,
+                i,
+                octaves.length - 1
+              )}
             >
-              <Text
-                fontSize={30}
-                fontWeight="black"
-                fill={octave === symphonyOctave ? "#fff" : "#000"}
-              >
+              <Text {...propsRangeText(octave === symphonyOctave)}>
                 {octave}
               </Text>
             </AutoLayout>
           ))}
         </AutoLayout>
-        <AutoLayout
-          direction="horizontal"
-          width="fill-parent"
-          cornerRadius={16}
-          spacing={2}
-        >
+        {infoText("Octaves change pitch")}
+        <AutoLayout width="fill-parent" spacing={2}>
           {waves.map((wave, i) => (
             <AutoLayout
               key={wave}
-              direction="vertical"
-              fill={wave === symphonyWave ? "#000" : "#eee"}
-              padding={20}
-              horizontalAlignItems="center"
-              cornerRadius={{
-                topLeft: i === 0 ? 12 : 0,
-                bottomLeft: i === 0 ? 12 : 0,
-                topRight: i === waves.length - 1 ? 12 : 0,
-                bottomRight: i === waves.length - 1 ? 12 : 0,
-              }}
-              width="fill-parent"
               onClick={() => setSymphonyWave(wave)}
+              {...propsRangeButton(wave === symphonyWave, i, waves.length - 1)}
             >
               <SVG
                 src={svgFromWave(wave, wave === symphonyWave ? "#fff" : "#000")}
@@ -504,67 +559,67 @@ function Widget() {
             </AutoLayout>
           ))}
         </AutoLayout>
-        <AutoLayout
-          direction="horizontal"
-          width="fill-parent"
-          cornerRadius={16}
-          spacing={2}
-        >
+        {infoText("Waveforms change tone")}
+        <AutoLayout cornerRadius={12} spacing={2} width="fill-parent">
           {combos.map((combo, i) => (
             <AutoLayout
               key={combo}
-              direction="vertical"
-              fill={combo === symphonyCombo ? "#000" : "#eee"}
-              padding={20}
-              horizontalAlignItems="center"
-              cornerRadius={{
-                topLeft: i === 0 ? 12 : 0,
-                bottomLeft: i === 0 ? 12 : 0,
-                topRight: i === combos.length - 1 ? 12 : 0,
-                bottomRight: i === combos.length - 1 ? 12 : 0,
-              }}
-              width="fill-parent"
               onClick={() => setSymphonyCombo(combo)}
+              {...propsRangeButton(
+                combo === symphonyCombo,
+                i,
+                combos.length - 1
+              )}
             >
-              <Text
-                fontSize={24}
-                fontWeight="black"
-                fill={combo === symphonyCombo ? "#fff" : "#000"}
-              >
-                {combo.toUpperCase()}
+              <Text {...propsRangeText(combo === symphonyCombo)}>
+                {comboLabels[combo]}
               </Text>
             </AutoLayout>
           ))}
         </AutoLayout>
-        <AutoLayout spacing={20} width="fill-parent">
-          <AutoLayout
-            direction="vertical"
-            fill={"#fff"}
-            hoverStyle={{ fill: "#eee" }}
-            padding={20}
-            horizontalAlignItems="center"
-            cornerRadius={12}
-            width={80}
-            onClick={() => handleRestClick()}
-          >
-            <Text fontSize={24} fontWeight="black" fill="#000">
-              R
-            </Text>
+        {infoText("Note or Triad")}
+        <AutoLayout spacing={spacingGap} width="fill-parent">
+          <AutoLayout {...propsBlackButton} onClick={() => handleRestClick()}>
+            <Text {...propsBlackButtonText}>R</Text>
           </AutoLayout>
           <AutoLayout
-            direction="vertical"
-            fill={"#000"}
-            padding={20}
-            horizontalAlignItems="center"
-            cornerRadius={12}
+            {...propsBlackButton}
+            spacing={10}
             width="fill-parent"
             onClick={async () => await openUI()}
           >
             <SVG
-              src={`<svg width="28" height="28" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 36V24C6 19.2261 7.89642 14.6477 11.2721 11.2721C14.6477 7.89642 19.2261 6 24 6C28.7739 6 33.3523 7.89642 36.7279 11.2721C40.1036 14.6477 42 19.2261 42 24V36M42 38C42 39.0609 41.5786 40.0783 40.8284 40.8284C40.0783 41.5786 39.0609 42 38 42H36C34.9391 42 33.9217 41.5786 33.1716 40.8284C32.4214 40.0783 32 39.0609 32 38V32C32 30.9391 32.4214 29.9217 33.1716 29.1716C33.9217 28.4214 34.9391 28 36 28H42V38ZM6 38C6 39.0609 6.42143 40.0783 7.17157 40.8284C7.92172 41.5786 8.93913 42 10 42H12C13.0609 42 14.0783 41.5786 14.8284 40.8284C15.5786 40.0783 16 39.0609 16 38V32C16 30.9391 15.5786 29.9217 14.8284 29.1716C14.0783 28.4214 13.0609 28 12 28H6V38Z" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>`}
+              src={`<svg width="${iconDimension}" height="${iconDimension}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 36V24C6 19.2261 7.89642 14.6477 11.2721 11.2721C14.6477 7.89642 19.2261 6 24 6C28.7739 6 33.3523 7.89642 36.7279 11.2721C40.1036 14.6477 42 19.2261 42 24V36M42 38C42 39.0609 41.5786 40.0783 40.8284 40.8284C40.0783 41.5786 39.0609 42 38 42H36C34.9391 42 33.9217 41.5786 33.1716 40.8284C32.4214 40.0783 32 39.0609 32 38V32C32 30.9391 32.4214 29.9217 33.1716 29.1716C33.9217 28.4214 34.9391 28 36 28H42V38ZM6 38C6 39.0609 6.42143 40.0783 7.17157 40.8284C7.92172 41.5786 8.93913 42 10 42H12C13.0609 42 14.0783 41.5786 14.8284 40.8284C15.5786 40.0783 16 39.0609 16 38V32C16 30.9391 15.5786 29.9217 14.8284 29.1716C14.0783 28.4214 13.0609 28 12 28H6V38Z" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>`}
+            />
+            <Text {...propsBlackButtonText}>Play</Text>
+          </AutoLayout>
+          <AutoLayout
+            {...propsBlackButton}
+            onClick={() => setShowInfo(!showInfo)}
+          >
+            <SVG
+              src={`<svg width="${iconDimension}" height="${iconDimension}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24 32V24M24 16H24.02M44 24C44 35.0457 35.0457 44 24 44C12.9543 44 4 35.0457 4 24C4 12.9543 12.9543 4 24 4C35.0457 4 44 12.9543 44 24Z" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>`}
             />
           </AutoLayout>
         </AutoLayout>
+        {infoText("(R)est • Open player • Info")}
+
+        {showInfo && (
+          <AutoLayout
+            spacing={spacingGap}
+            direction="vertical"
+            width="fill-parent"
+          >
+            <AutoLayout
+              {...propsBlackButton}
+              onClick={() => updateWidgets()}
+              width="fill-parent"
+            >
+              <Text {...propsBlackButtonText}>Update all to v{version}</Text>
+            </AutoLayout>
+            {infoText(`Symphony v${version}`)}
+          </AutoLayout>
+        )}
       </AutoLayout>
     );
   } else if (mode === "sound") {
@@ -578,10 +633,10 @@ function Widget() {
           direction="vertical"
           cornerRadius={NODE_DIAMETER}
           spacing={NODE_DIAMETER * 0.05}
-          stroke={fillFromStepAndOctave(step, octave, "dd")}
+          stroke={fillFromStepAndOctave(step, octave, "ff")}
           strokeAlign="outside"
           strokeWidth={4}
-          fill={fillFromStepAndOctave(step, octave, "99")}
+          fill={fillFromStepAndOctave(step, octave, "ee")}
           height={NODE_DIAMETER - 4}
           width={NODE_DIAMETER - 4}
         >
@@ -675,7 +730,7 @@ function svgFromWave(wave: string, fill: string) {
     square: `<path d="M5 20.0073V10.0073H15V19.8807H25" />`,
     triangle: `<path d="M5.76935 20.0073L15.8166 10.0073L25.7693 19.9133" />`,
   }[wave];
-  return `<svg viewBox="0 5 30 20" height="60" width="60" stroke="${fill}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none">${path}</svg>`;
+  return `<svg viewBox="0 5 30 20" height="36" width="36" stroke="${fill}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none">${path}</svg>`;
 }
 
 function svgWideFromWave(wave: string, fill: string) {
