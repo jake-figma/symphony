@@ -43,8 +43,6 @@ async function openUI() {
 }
 
 function Widget() {
-  const sustains = useSyncedMap<[number, number]>("node-sustain");
-
   useEffect(() => {
     figma.ui.onmessage = async (e) => {
       if (messageIsPingMessage(e)) {
@@ -77,14 +75,10 @@ function Widget() {
           const length = start.text.characters.match(/^\d+$/)
             ? parseInt(start.text.characters)
             : start.text.characters.length || 1;
-          const sustainValue = sustains.get(start.id);
-          const index = sustainValue ? sustainValue[1] + 1 : 0;
-          sustains.set(start.id, [length, index]);
           const next = await findNextNodeFromConnector(start);
           if (next && !nextNodes.includes(node)) {
-            if (index >= length) {
+            if (step % length === 0) {
               nextNodes.push(next);
-              sustains.set(start.id, [length, 0]);
             } else {
               nextNodes.push(node);
             }
@@ -371,7 +365,7 @@ function Widget() {
       <AutoLayout
         direction="vertical"
         cornerRadius={20}
-        fill="#f9f9f9"
+        fill={url === "http://localhost:8000" ? "#F00" : "#f9f9f9"}
         stroke="#EEE"
         strokeWidth={8}
         strokeAlign="inside"

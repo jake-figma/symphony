@@ -15,8 +15,8 @@
       <span>Enable</span>
     </label>
     <label for="rate">
-      <span>BPM (<span id="rate-value">120</span>)</span>
-      <input id="rate" type="range" min="50" max="200" value="120" disabled>
+      <span>Speed (<span id="rate-value">8</span>)</span>
+      <input id="rate" type="range" min="1" max="16" value="8" disabled>
     </label>
     <label for="proximity" title="Only hear what is close to your cursor">
       <input id="proximity" type="checkbox" disabled>
@@ -26,33 +26,9 @@
       <input id="multiplayer" type="checkbox" disabled>
       <span>Multiplayer</span>
     </label>
+
   </main>
   <script type="module" src="./main.tsx"></script>
-  <script id="worker" type="javascript/worker">
-    let timerID = null;
-    let interval = 100;
-    
-    self.onmessage = function (e) {
-      if (e.data == "start") {
-        timerID = setInterval(function () {
-          postMessage("tick");
-        }, interval);
-      } else if (e.data.interval) {
-        interval = e.data.interval;
-        if (timerID) {
-          clearInterval(timerID);
-          timerID = setInterval(function () {
-            postMessage("tick");
-          }, interval);
-        }
-      } else if (e.data == "stop") {
-        clearInterval(timerID);
-        timerID = null;
-      }
-    };
-    
-    postMessage("jello world");    
-  </script>
 </body>
 
 </html>
