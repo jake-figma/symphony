@@ -482,7 +482,7 @@ function Widget() {
                     symphonyCombo
                   )
                 }
-                hoverStyle={{ fill: note.match("#") ? "#222" : "#ddd" }}
+                // hoverStyle={{ fill: note.match("#") ? "#222" : "#ddd" }}
                 hoverStyle={{ fill: fillFromStepAndOctave(i, 5) }}
                 height={note.match("#") ? heightBlack : heightWhite}
                 width={keyWidth}
@@ -522,7 +522,7 @@ function Widget() {
                     symphonyCombo
                   )
                 }
-                hoverStyle={{ fill: "#333" }}
+                // hoverStyle={{ fill: "#333" }}
                 hoverStyle={{ fill: fillFromStepAndOctave(i, 5) }}
                 height={note.match("#") ? heightBlack : heightWhite}
                 width={keyWidth}
